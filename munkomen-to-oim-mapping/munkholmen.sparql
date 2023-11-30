@@ -1,0 +1,294 @@
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dcat: <http://www.w3.org/ns/dcat#>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX base: <http://w3id.org/foodie/lucas/lcvalue>
+PREFIX sosa:  <http://www.w3.org/ns/sosa/> 
+PREFIX owl:   <http://www.w3.org/2002/07/owl#> 
+PREFIX glosis_cm: <http://w3id.org/glosis/model/common#>
+PREFIX glosis_lh: <http://w3id.org/glosis/model/layerhorizon#> 
+PREFIX glosis_cl: <http://w3id.org/glosis/model/codelists#> 
+PREFIX glosis_sp: <http://w3id.org/glosis/model/siteplot#> 
+PREFIX glosis_pr: <http://w3id.org/glosis/model/profile#> 
+PREFIX iso19103: <http://def.seegrid.csiro.au/isotc211/iso19103/2005/basic#> 
+PREFIX iso28258: 	<http://w3id.org/glosis/model/iso28258/2013#> 
+PREFIX qudt: <http://qudt.org/schema/qudt/> 
+PREFIX unit: <http://qudt.org/vocab/unit/> 
+PREFIX sosa:  <http://www.w3.org/ns/sosa/> 
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX oim-jf: <https://w3id.org/iliad/oim/jellyfish>
+PREFIX wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+PREFIX dwc: <http://rs.tdwg.org/dwc/terms/>
+PREFIX oim-jf: <http://w3id.org/iliad/oim/jellyfish#>
+PREFIX dwc-mbg: <http://mmisw.org/ont/ioos/marine_biogeography/>
+
+
+### observation collection
+CONSTRUCT {
+  ?obs_col_URI a sosa:ObservationCollection ;
+  	rdfs:label ?obs_col_label ;
+	sosa:madeBySensor ?sensor_URI ;
+	sosa:hasFeatureOfInterest ?feature_URI ;
+	sosa:phenomenonTime ?timestamp_prop ; 
+  sosa:resultTime ?timestamp_prop ;
+	sosa:usedProcedure ?procedure_URI ;	
+	sosa:hasMember ?obs_URI1 ;
+	sosa:hasMember ?obs_URI2 ;
+	sosa:hasMember ?obs_URI3 ;
+	sosa:hasMember ?obs_URI4 ;
+	sosa:hasMember ?obs_URI5 ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {		
+  BIND (URI('http://w3id.org/iliad/munkhomen/procedure/sensing') AS ?procedure_URI)
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/sensor/',STR(?sensor))) AS ?sensor_URI)
+  
+  BIND (IF(?sensor="gps",xsd:dateTime(CONCAT(SUBSTR(?_time,1,5),SUBSTR(?_time,6,3),SUBSTR(?_time,9,2),'T',SUBSTR(?_time,12,3),SUBSTR(?_time,15,3),SUBSTR(?_time,18,2),'Z')),?nothing) AS ?timestamp_p1)
+  BIND (IF(?sensor="ctd",xsd:dateTime(CONCAT(SUBSTR(?_time,1,5),SUBSTR(?_time,6,3),SUBSTR(?_time,9,2),'T',SUBSTR(?_time,12))),?nothing) AS ?timestamp_p2)
+  BIND (COALESCE(?timestamp_p1,?timestamp_p2) AS ?timestamp_prop)
+  
+	BIND (IF(?sensor="gps",URI(CONCAT('http://w3id.org/iliad/munkhomen/',STR(?sensor),'/',STR(?timestamp_prop))),?nothing) AS ?obs_col_URI1)	
+	BIND (IF(?sensor="ctd",URI(CONCAT('http://w3id.org/iliad/munkhomen/',STR(?sensor),'/',STR(?timestamp_prop))),?nothing) AS ?obs_col_URI2)	
+	BIND (COALESCE(?obs_col_URI1,?obs_col_URI2) AS ?obs_col_URI)
+	
+	BIND (IF(?sensor="gps",STRLANG(CONCAT('Munkhomen observation collection for sensor: ', STR(?sensor),' time: ',STR(?timestamp_prop)),"en"),?nothing) AS ?obs_col_label1)	    	 
+	BIND (IF(?sensor="ctd",STRLANG(CONCAT('Munkhomen observation collection for sensor: ', STR(?sensor),' time: ',STR(?timestamp_prop)),"en"),?nothing) AS ?obs_col_label2)	    	 
+	BIND (COALESCE(?obs_col_label1,?obs_col_label2) AS ?obs_col_label)
+	
+  BIND (IF(?sensor="gps",URI(CONCAT('http://w3id.org/iliad/munkhomen/location/',STR(?longitude),'+',STR(?latitude))),?nothing) AS ?feature_URI1)
+  BIND (IF(?sensor="ctd",URI(CONCAT('http://w3id.org/iliad/munkhomen/location/',STR(10.372296333313),'+',STR(63.4574737548828),'+',STR(?depth))),?nothing) AS ?feature_URI2)	      
+  BIND (COALESCE(?feature_URI1,?feature_URI2) AS ?feature_URI)
+  
+  BIND (IF(?sensor="gps" && BOUND(?temperature), URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/temperature')), ?nothing) AS ?obs_URI1)
+  BIND (IF(?sensor="gps" && BOUND(?wind_direction), URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/windDirection')), ?nothing) AS ?obs_URI2)
+  BIND (IF(?sensor="gps" && BOUND(?wind_speed), URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/windSpeed')), ?nothing) AS ?obs_URI3)    	  
+  BIND (IF(?sensor="ctd" && BOUND(?salinity), URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/seaWaterSalinity')), ?nothing) AS ?obs_URI4)
+  BIND (IF(?sensor="ctd" && BOUND(?temperature), URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/seaWaterTemperature')), ?nothing) AS ?obs_URI5)
+}
+
+
+### observation 1
+CONSTRUCT {
+  ?obs_URI a sosa:Observation ;
+  	rdfs:label ?obs_label ;  	
+  	sosa:observedProperty ?property_URI ;
+  	sosa:hasResult ?obs_result_URI ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+	FILTER (?sensor="gps" && BOUND(?temperature))
+	BIND (xsd:dateTime(CONCAT(SUBSTR(?_time,1,5),SUBSTR(?_time,6,3),SUBSTR(?_time,9,2),'T',SUBSTR(?_time,12,3),SUBSTR(?_time,15,3),SUBSTR(?_time,18,2),'Z')) AS ?timestamp_prop)
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/temperature')) AS ?obs_URI)
+  BIND (STRLANG(CONCAT('Munkhomen observation observation for sensor: ',STR(?sensor),' time: ',STR(?timestamp_prop),' property: airTemperature'),"en") AS ?obs_label)
+  #BIND (URI('http://vocab.nerc.ac.uk/collection/P07/current/CFSN0023') AS ?property_URI)
+  BIND (URI('http://vocab.nerc.ac.uk/standard_name/air_temperature') AS ?property_URI)
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/temperature/result')) AS ?obs_result_URI)
+}
+
+### observation 2
+CONSTRUCT {
+  ?obs_URI a sosa:Observation ;
+  	rdfs:label ?obs_label ;  	
+  	sosa:observedProperty ?property_URI ;
+  	sosa:hasResult ?obs_result_URI ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+	FILTER (?sensor="gps" && BOUND(?wind_direction))
+	BIND (xsd:dateTime(CONCAT(SUBSTR(?_time,1,5),SUBSTR(?_time,6,3),SUBSTR(?_time,9,2),'T',SUBSTR(?_time,12,3),SUBSTR(?_time,15,3),SUBSTR(?_time,18,2),'Z')) AS ?timestamp_prop)
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/windDirection')) AS ?obs_URI)
+  BIND (STRLANG(CONCAT('Munkhomen observation for sensor: ',STR(?sensor),' time: ',STR(?timestamp_prop),' property: windDirection'),"en") AS ?obs_label)	    	 
+  BIND (URI('http://dd.eionet.europa.eu/vocabulary/aq/meteoparameter/52') AS ?property_URI)
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/windDirection/result')) AS ?obs_result_URI)
+}
+
+### observation 3
+CONSTRUCT {
+  ?obs_URI a sosa:Observation ;
+  	rdfs:label ?obs_label ;  	
+  	sosa:observedProperty ?property_URI ;
+  	sosa:hasResult ?obs_result_URI ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+	FILTER (?sensor="gps" && BOUND(?wind_speed))
+	BIND (xsd:dateTime(CONCAT(SUBSTR(?_time,1,5),SUBSTR(?_time,6,3),SUBSTR(?_time,9,2),'T',SUBSTR(?_time,12,3),SUBSTR(?_time,15,3),SUBSTR(?_time,18,2),'Z')) AS ?timestamp_prop)
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/windSpeed')) AS ?obs_URI)
+  BIND (STRLANG(CONCAT('Munkhomen observation for sensor: ',STR(?sensor),' time: ',STR(?timestamp_prop),' property: windSpeed'),"en") AS ?obs_label)	    	 	 
+  #BIND (URI('http://vocab.nerc.ac.uk/collection/P07/current/CFSN0038') AS ?property_URI)
+  BIND (URI('http://vocab.nerc.ac.uk/standard_name/wind_speed') AS ?property_URI)
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/windSpeed/result')) AS ?obs_result_URI)
+}
+
+### observation 4
+CONSTRUCT {
+  ?obs_URI a sosa:Observation ;
+  	rdfs:label ?obs_label ;  	
+  	sosa:observedProperty ?property_URI ;
+  	sosa:hasResult ?obs_result_URI ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+	FILTER (?sensor="ctd" && BOUND(?salinity))
+	BIND (xsd:dateTime(CONCAT(SUBSTR(?_time,1,5),SUBSTR(?_time,6,3),SUBSTR(?_time,9,2),'T',SUBSTR(?_time,12))) AS ?timestamp_prop)  
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/seaWaterSalinity')) AS ?obs_URI)
+  BIND (STRLANG(CONCAT('Munkhomen observation for sensor: ',STR(?sensor),' time: ',STR(?timestamp_prop),' property: seaWaterSalinity'),"en") AS ?obs_label)	    	 	 
+  #BIND (URI('http://vocab.nerc.ac.uk/collection/P07/current/CFSN0331') AS ?property_URI)
+  BIND (URI('http://vocab.nerc.ac.uk/standard_name/sea_water_salinity') AS ?property_URI)
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/seaWaterSalinity/result')) AS ?obs_result_URI)
+}
+
+### observation 5
+CONSTRUCT {
+  ?obs_URI a sosa:Observation ;
+  	rdfs:label ?obs_label ;  	
+  	sosa:observedProperty ?property_URI ;
+  	sosa:hasResult ?obs_result_URI ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+	FILTER (?sensor="ctd" && BOUND(?temperature))
+	BIND (xsd:dateTime(CONCAT(SUBSTR(?_time,1,5),SUBSTR(?_time,6,3),SUBSTR(?_time,9,2),'T',SUBSTR(?_time,12))) AS ?timestamp_prop)  
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/seaWaterTemperature')) AS ?obs_URI)
+  BIND (STRLANG(CONCAT('Munkhomen observation for sensor: ',STR(?sensor),' time: ',STR(?timestamp_prop),' property: seaWaterTemperature'),"en") AS ?obs_label)	    	 	 
+  #BIND (URI('http://vocab.nerc.ac.uk/collection/P07/current/CFSN0335') AS ?property_URI)
+  BIND (URI('http://vocab.nerc.ac.uk/standard_name/sea_water_temperature') AS ?property_URI)
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/seaWaterTemperature/result')) AS ?obs_result_URI)
+}
+
+### feature of interest
+CONSTRUCT {
+  ?feature_URI a sosa:FeatureOfInterest, wgs84:Point , dct:Location ;
+  	rdfs:label ?feature_label ;
+  	wgs84:lat ?latitudedec ;
+  	wgs84:long ?longitudedec ;
+#    wgs84:alt ?altitude ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+  FILTER (BOUND(?longitude) && BOUND(?latitude))
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/location/',STR(?longitude),'+',STR(?latitude))) AS ?feature_URI)
+  BIND (STRLANG(CONCAT('Feature of interest: location at longitude: ', STR(?longitude),' latitude: ',STR(?latitude)),"en") AS ?feature_label)
+  BIND (xsd:decimal(?latitude) as ?latitudedec)
+  BIND (xsd:decimal(?longitude) as ?longitudedec)
+}
+
+### feature of interest1
+CONSTRUCT {
+  ?feature_URI a sosa:FeatureOfInterest, wgs84:Point , dct:Location ;
+  	rdfs:label ?feature_label ;
+  	wgs84:lat 63.4574737548828 ;
+  	wgs84:long 10.372296333313 ;
+    wgs84:alt ?depthdec ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+  FILTER (BOUND(?depth))
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/location/',STR(10.372296333313),'+',STR(63.4574737548828),'+',STR(?depth))) AS ?feature_URI)
+  BIND (STRLANG(CONCAT('Feature of interest: location at longitude: ', STR(10.372296333313),'+',STR(63.4574737548828),'+',STR(?depth)),"en") AS ?feature_label)
+  BIND (0-xsd:decimal(?depth) as ?depthdec)
+}
+
+### simulation sensor
+CONSTRUCT {
+  ?sensor_URI a sosa:Sensor ;
+  rdfs:label ?sensor_label ;
+  dct:type ?edge_device ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+  BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/sensor/',STR(?sensor))) AS ?sensor_URI)
+  BIND (STRLANG(CONCAT('Sensor: ',STR(?sensor),' type: ',STR(?edge_device)),"en") AS ?sensor_label)
+}
+
+###  procedure 
+CONSTRUCT {
+  ?procedure_URI a sosa:Procedure ;
+  	rdfs:label ?procedure_label ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+  BIND (URI('http://w3id.org/iliad/munkhomen/procedure/sensing') AS ?procedure_URI)
+  BIND (STRLANG('Sensing measurements',"en") AS ?procedure_label)
+}
+
+### observation result 1
+CONSTRUCT {
+  ?obs_result_URI a sosa:Result ;
+  	rdfs:label ?result_label ;
+	qudt:numericValue ?temperature ;
+	qudt:unit ?uom ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+    FILTER (?sensor="gps" && BOUND(?temperature))
+    BIND (xsd:dateTime(CONCAT(SUBSTR(?_time,1,5),SUBSTR(?_time,6,3),SUBSTR(?_time,9,2),'T',SUBSTR(?_time,12,3),SUBSTR(?_time,15,3),SUBSTR(?_time,18,2),'Z')) AS ?timestamp_prop)
+    BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/temperature/result')) AS ?obs_result_URI)
+    BIND (STRLANG(CONCAT('Result for observation of for sensor: ',STR(?sensor),' time: ',STR(?timestamp_prop),' property: airTemperature'),"en") AS ?result_label)	    	 
+    BIND (URI('http://qudt.org/vocab/unit/DEG_C') AS ?uom)
+}
+
+### observation result 2
+CONSTRUCT {
+  ?obs_result_URI a sosa:Result ;
+  	rdfs:label ?result_label ;
+	qudt:numericValue ?wind_direction ;
+	qudt:unit ?uom ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+    FILTER (?sensor="gps" && BOUND(?wind_direction))
+    BIND (xsd:dateTime(CONCAT(SUBSTR(?_time,1,5),SUBSTR(?_time,6,3),SUBSTR(?_time,9,2),'T',SUBSTR(?_time,12,3),SUBSTR(?_time,15,3),SUBSTR(?_time,18,2),'Z')) AS ?timestamp_prop)
+    BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/windDirection/result')) AS ?obs_result_URI)
+    BIND (STRLANG(CONCAT('Result for observation of sensor: ',STR(?sensor),' time: ',STR(?timestamp_prop),' property: windDirection'),"en") AS ?result_label)	    	 
+    BIND (URI('http://qudt.org/vocab/unit/DEG') AS ?uom)
+}
+
+### observation result 3
+CONSTRUCT {
+  ?obs_result_URI a sosa:Result ;
+  	rdfs:label ?result_label ;
+	qudt:numericValue ?wind_speed ;
+	qudt:unit ?uom ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+    FILTER (?sensor="gps" && BOUND(?wind_speed))
+    BIND (xsd:dateTime(CONCAT(SUBSTR(?_time,1,5),SUBSTR(?_time,6,3),SUBSTR(?_time,9,2),'T',SUBSTR(?_time,12,3),SUBSTR(?_time,15,3),SUBSTR(?_time,18,2),'Z')) AS ?timestamp_prop)
+    BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/windSpeed/result')) AS ?obs_result_URI)
+    BIND (STRLANG(CONCAT('Result for observation of sensor: ',STR(?sensor),' time: ',STR(?timestamp_prop),' property: windSpeed'),"en") AS ?result_label)	    	 
+    BIND (URI('http://qudt.org/vocab/unit/M-PER-SEC') AS ?uom)
+}
+
+### observation result 4
+CONSTRUCT {
+  ?obs_result_URI a sosa:Result ;
+  	rdfs:label ?result_label ;
+	qudt:numericValue ?salinity ;
+	qudt:unit ?uom ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+    FILTER (?sensor="ctd" && BOUND(?salinity))    
+    BIND (xsd:dateTime(CONCAT(SUBSTR(?_time,1,5),SUBSTR(?_time,6,3),SUBSTR(?_time,9,2),'T',SUBSTR(?_time,12))) AS ?timestamp_prop)  
+    BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/seaWaterSalinity/result')) AS ?obs_result_URI)
+    BIND (STRLANG(CONCAT('Result for observation of sensor: ',STR(?sensor),' time: ',STR(?timestamp_prop),' property: seaWaterSalinity'),"en") AS ?result_label)	    	 
+    BIND (URI('http://qudt.org/vocab/unit/UNITLESS') AS ?uom)
+}
+
+### observation result 5
+CONSTRUCT {
+  ?obs_result_URI a sosa:Result ;
+  	rdfs:label ?result_label ;
+	qudt:numericValue ?temperature ;
+	qudt:unit ?uom ;
+}  	
+FROM <file:munkhomen__air_temperature.csv> 
+WHERE {
+    FILTER (?sensor="ctd" && BOUND(?temperature))    
+    BIND (xsd:dateTime(CONCAT(SUBSTR(?_time,1,5),SUBSTR(?_time,6,3),SUBSTR(?_time,9,2),'T',SUBSTR(?_time,12))) AS ?timestamp_prop)  
+    BIND (URI(CONCAT('http://w3id.org/iliad/munkhomen/observation/',STR(?sensor),'/',STR(?timestamp_prop),'/seaWaterTemperature/result')) AS ?obs_result_URI)
+    BIND (STRLANG(CONCAT('Result for observation of sensor: ',STR(?sensor),' time: ',STR(?timestamp_prop),' property: seaWaterTemperature'),"en") AS ?result_label)	    	 
+    BIND (URI('http://qudt.org/vocab/unit/DEG_C') AS ?uom)
+}
